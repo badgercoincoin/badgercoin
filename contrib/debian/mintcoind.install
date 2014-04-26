@@ -1,0 +1,2 @@
+debian/bin/badgercoind usr/bin
+src/badgercoind usr/lib/badgercoin

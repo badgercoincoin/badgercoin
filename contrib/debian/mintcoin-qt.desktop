@@ -1,0 +1,13 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Badgercoin
+Comment=Badgercoin P2P Cryptocurrency
+Comment[fr]=Badgercoin, monnaie virtuelle cryptographique pair à pair
+Comment[tr]=Badgercoin, eşten eşe kriptografik sanal para birimi
+Comment[es]=Badgercoin, una criptomoneda P2P
+Exec=/usr/bin/badgercoin-qt
+Terminal=false
+Type=Application
+Icon=/usr/share/pixmaps/bitcoin80.xpm
+MimeType=x-scheme-handler/badgercoin;
+Categories=Office;

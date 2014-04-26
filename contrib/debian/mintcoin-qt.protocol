@@ -1,0 +1,11 @@
+[Protocol]
+exec=badgercoin-qt '%u'
+protocol=badgercoin
+input=none
+output=none
+helper=true
+listing=
+reading=false
+writing=false
+makedir=false
+deleting=false
