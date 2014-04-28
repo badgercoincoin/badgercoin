@@ -7,7 +7,9 @@
 #include "main.h"
 
 // MODIFIER_INTERVAL: time to elapse before new modifier is computed
-static const unsigned int MODIFIER_INTERVAL = 6 * 60 * 60;
+static const unsigned int MODIFIER_INTERVAL = 6* 60* 60;
+static const unsigned int MODIFIER_INTERVAL_NEW = 15 * 60;
+static const unsigned int MODIFIER_INTERVAL_NEW_TESTNET = 60;
 extern unsigned int nModifierInterval;
 
 // MODIFIER_INTERVAL_RATIO:
@@ -33,5 +35,8 @@ unsigned int GetStakeModifierChecksum(const CBlockIndex* pindex);
 
 // Check stake modifier hard checkpoints
 bool CheckStakeModifierCheckpoints(int nHeight, unsigned int nStakeModifierChecksum);
+
+// Get time weight using supplied timestamps
+int64 GetWeight(int64 nIntervalBeginning, int64 nIntervalEnd);
 
 #endif // PPCOIN_KERNEL_H
