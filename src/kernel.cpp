@@ -17,11 +17,31 @@ extern int nStakeTargetSpacing;
 
 unsigned int nModifierInterval = MODIFIER_INTERVAL;
 
+
+unsigned int nProtocolModifierIntervalChangeSwitchHeight     = 14420;
+unsigned int nProtocolModifierIntervalChangeTestSwitchHeight = 100;
+
+bool IsProtocolModifierIntervalChange(unsigned int nBlockHeight)
+{
+    return false;
+    // return (nBlockHeight >= (fTestNet? nProtocolModifierIntervalChangeTestSwitchHeight : nProtocolModifierIntervalChangeSwitchHeight));
+}
+
+
 // Hard checkpoints of stake modifiers to ensure they are deterministic
 static std::map<int, unsigned int> mapStakeModifierCheckpoints =
     boost::assign::map_list_of
     (     0, 0xfd11f4e7u )
 ;
+// Get time weight
+int64 GetWeight(int64 nIntervalBeginning, int64 nIntervalEnd)
+{
+    // Kernel hash weight starts from 0 at the min age
+    // this change increases active coins participating the hash and helps
+    // to secure the network when proof-of-stake difficulty is low
+
+    return min(nIntervalEnd - nIntervalBeginning - nStakeMinAge, (int64)nStakeMaxAge);
+}
 
 // Get the last stake modifier and its generation time from a given block
 static bool GetLastStakeModifier(const CBlockIndex* pindex, uint64& nStakeModifier, int64& nModifierTime)
@@ -127,6 +147,15 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexPrev, uint64& nStakeModif
         fGeneratedStakeModifier = true;
         return true;  // genesis block's modifier is 0
     }
+    // fix ba.dgercoin
+
+    if ( IsProtocolModifierIntervalChange(pindexPrev->nHeight)){
+        nModifierInterval = fTestNet?MODIFIER_INTERVAL_NEW_TESTNET:MODIFIER_INTERVAL_NEW;
+        //printf("Switching to new modifier interval %i @ block %i", nModifierInterval,pindexPrev->nHeight );
+    }
+
+
+
     // First find current stake modifier and its generation block time
     // if it's not old enough, return the same stake modifier
     int64 nModifierTime = 0;
@@ -136,6 +165,11 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexPrev, uint64& nStakeModif
     {
         printf("ComputeNextStakeModifier: prev modifier=0x%016"PRI64x" time=%s\n", nStakeModifier, DateTimeStrFormat(nModifierTime).c_str());
     }
+
+
+
+
+
     if (nModifierTime / nModifierInterval >= pindexPrev->GetBlockTime() / nModifierInterval)
         return true;
 
@@ -219,6 +253,8 @@ static bool GetKernelStakeModifier(uint256 hashBlockFrom, uint64& nStakeModifier
     int64 nStakeModifierSelectionInterval = GetStakeModifierSelectionInterval();
     const CBlockIndex* pindex = pindexFrom;
 
+
+
     // loop to find the stake modifier later by a selection interval
     while (nStakeModifierTime < pindexFrom->GetBlockTime() + nStakeModifierSelectionInterval)
     {
@@ -293,6 +329,8 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock& blockFrom, unsigned 
     uint64 nStakeModifier = 0;
     int nStakeModifierHeight = 0;
     int64 nStakeModifierTime = 0;
+
+
 
     if (!GetKernelStakeModifier(blockFrom.GetHash(), nStakeModifier, nStakeModifierHeight, nStakeModifierTime, fPrintProofOfStake))
 	{
@@ -369,6 +407,8 @@ bool CheckProofOfStake(const CTransaction& tx, unsigned int nBits, uint256& hash
     CBlock block;
     if (!block.ReadFromDisk(txindex.pos.nFile, txindex.pos.nBlockPos, false))
         return fDebug? error("CheckProofOfStake() : read block failed") : false; // unable to read block of previous transaction
+
+
 
     if (!CheckStakeKernelHash(nBits, block, txindex.pos.nTxPos - txindex.pos.nBlockPos, txPrev, txin.prevout, tx.nTime, hashProofOfStake, fDebug))
         return tx.DoS(1, error("CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s", tx.GetHash().ToString().c_str(), hashProofOfStake.ToString().c_str())); // may occur during initial download or if behind on block chain sync
