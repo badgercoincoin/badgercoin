@@ -153,10 +153,14 @@ BitcoinGUI::BitcoinGUI(QWidget *parent):
     labelMintingIcon->setEnabled(false);
     // Add timer to update minting info
     QTimer *timerMintingIcon = new QTimer(labelMintingIcon);
-    timerMintingIcon->start(5 * 1000);
+    timerMintingIcon->start(MODEL_UPDATE_DELAY);
     connect(timerMintingIcon, SIGNAL(timeout()), this, SLOT(updateMintingIcon()));
-    // Set initial value for network weight
-    nNetworkWeight = 0;
+    // Add timer to update minting weights
+    QTimer *timerMintingWeights = new QTimer(labelMintingIcon);
+    timerMintingWeights->start(30 * 1000);
+    connect(timerMintingWeights, SIGNAL(timeout()), this, SLOT(updateMintingWeights()));
+    // Set initial values for user and network weights
+    nWeight, nNetworkWeight = 0;
 
     // Progress bar and label for blocks download
     progressBarLabel = new QLabel();
@@ -889,6 +893,19 @@ void BitcoinGUI::lockWalletToggle()
         walletModel->setWalletLocked(true);
 }
 
+void BitcoinGUI::unlockWallet()
+{
+    if(!walletModel)
+        return;
+    // Unlock wallet when requested by wallet model
+    if(walletModel->getEncryptionStatus() == WalletModel::Locked)
+    {
+        AskPassphraseDialog dlg(AskPassphraseDialog::Unlock, this);
+        dlg.setModel(walletModel);
+        dlg.exec();
+    }
+}
+
 void BitcoinGUI::showNormalIfMinimized(bool fToggleHidden)
 {
     // activateWindow() (sometimes) helps with keyboard focus on Windows
@@ -918,11 +935,6 @@ void BitcoinGUI::toggleHidden()
 
 void BitcoinGUI::updateMintingIcon()
 {
-    uint64 nTemp, nWeight = 0;
-
-    if (pwalletMain)
-        pwalletMain->GetStakeWeight(*pwalletMain, nTemp, nTemp, nWeight);
-
     if (pwalletMain && pwalletMain->IsLocked())
     {
         labelMintingIcon->setToolTip(tr("Not minting because wallet is locked."));
@@ -945,10 +957,6 @@ void BitcoinGUI::updateMintingIcon()
     }
     else if (nLastCoinStakeSearchInterval)
     {
-        // Only update network weight if we have the network's current number of blocks (fixes lagging GUI)
-        if ((clientModel && clientModel->getNumBlocks() == clientModel->getNumBlocksOfPeers()) || !nNetworkWeight)
-            nNetworkWeight = GetPoSKernelPS();
-
         uint64 nEstimateTime = nStakeTargetSpacing * nNetworkWeight / nWeight;
 
         QString text;
@@ -976,5 +984,19 @@ void BitcoinGUI::updateMintingIcon()
     {
         labelMintingIcon->setToolTip(tr("Not minting."));
         labelMintingIcon->setEnabled(false);
+    }
+}
+
+void BitcoinGUI::updateMintingWeights()
+{
+    // Only update if we have the network's current number of blocks, or weight(s) are zero (fixes lagging GUI)
+    if ((clientModel && clientModel->getNumBlocks() == clientModel->getNumBlocksOfPeers()) || !nWeight || !nNetworkWeight)
+    {
+        nWeight = 0;
+
+        if (pwalletMain)
+            pwalletMain->GetStakeWeight(*pwalletMain, nMinMax, nMinMax, nWeight);
+
+        nNetworkWeight = GetPoSKernelPS();
     }
 }

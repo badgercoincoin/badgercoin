@@ -102,6 +102,8 @@ private:
 
     QMovie *syncIconMovie;
 
+    uint64 nMinMax;
+    uint64 nWeight;
     uint64 nNetworkWeight;
 
     /** Create the main UI actions. */
@@ -176,6 +178,8 @@ private slots:
     /** Toggle unlocking wallet temporarily */
     void lockWalletToggle();
 
+ void unlockWallet();
+
     /** Show window if hidden, unminimize when minimized, rise when obscured or show if hidden and fToggleHidden is true */
     void showNormalIfMinimized(bool fToggleHidden = false);
     /** simply calls showNormalIfMinimized(true) for use in SLOT() macro */
@@ -183,6 +187,8 @@ private slots:
 
     /** Update info about minting */
     void updateMintingIcon();
+    /** Update minting weight info */
+    void updateMintingWeights();
 };
 
 #endif
