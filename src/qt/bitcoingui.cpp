@@ -933,31 +933,18 @@ void BitcoinGUI::toggleHidden()
     showNormalIfMinimized(true);
 }
 
+
 void BitcoinGUI::updateMintingIcon()
 {
-    if (pwalletMain && pwalletMain->IsLocked())
+    /* so not work... such wow.. so fix needed. a.m.s.i.x. */
+    uint64_t nMinWeight = 0, nMaxWeight = 0, nWeight = 0;
+    if (pwalletMain)
+        pwalletMain->GetStakeWeight(*pwalletMain, nMinWeight, nMaxWeight, nWeight);
+
+    if (nLastCoinStakeSearchInterval && nWeight)
     {
-        labelMintingIcon->setToolTip(tr("Not minting because wallet is locked."));
-        labelMintingIcon->setEnabled(false);
-    }
-    else if (vNodes.empty())
-    {
-        labelMintingIcon->setToolTip(tr("Not minting because wallet is offline."));
-        labelMintingIcon->setEnabled(false);
-    }
-    else if (IsInitialBlockDownload())
-    {
-        labelMintingIcon->setToolTip(tr("Not minting because wallet is syncing."));
-        labelMintingIcon->setEnabled(false);
-    }
-    else if (!nWeight)
-    {
-        labelMintingIcon->setToolTip(tr("Not minting because you don't have mature coins."));
-        labelMintingIcon->setEnabled(false);
-    }
-    else if (nLastCoinStakeSearchInterval)
-    {
-        uint64 nEstimateTime = nStakeTargetSpacing * nNetworkWeight / nWeight;
+        uint64_t nNetworkWeight = GetPoSKernelPS();
+        unsigned nEstimateTime = nStakeTargetSpacing * nNetworkWeight / nWeight;
 
         QString text;
         if (nEstimateTime < 60)
@@ -978,25 +965,29 @@ void BitcoinGUI::updateMintingIcon()
         }
 
         labelMintingIcon->setEnabled(true);
-        labelMintingIcon->setToolTip(tr("Minting.<br>Your weight is %1.<br>Network weight is %2.<br>Expected time to earn reward is %3.").arg(nWeight).arg(nNetworkWeight).arg(text));
+        labelMintingIcon->setToolTip(tr("Staking.<br>Your weight is %1<br>Network weight is %2<br>Expected time to earn reward is %3").arg(nWeight).arg(nNetworkWeight).arg(text));
     }
     else
     {
-        labelMintingIcon->setToolTip(tr("Not minting."));
         labelMintingIcon->setEnabled(false);
+        if (pwalletMain && pwalletMain->IsLocked())
+            labelMintingIcon->setToolTip(tr("Not minting because wallet is locked."));
+        else if (vNodes.empty())
+            labelMintingIcon->setToolTip(tr("Not minting because wallet is offline."));
+        else if (IsInitialBlockDownload())
+            labelMintingIcon->setToolTip(tr("Not minting because wallet is syncing."));
+        else if (!nWeight)
+            labelMintingIcon->setToolTip(tr("Not minting because you don't have mature coins."));
+        else
+            labelMintingIcon->setToolTip(tr("Not minting."));
     }
 }
 
 void BitcoinGUI::updateMintingWeights()
 {
-    // Only update if we have the network's current number of blocks, or weight(s) are zero (fixes lagging GUI)
-    if ((clientModel && clientModel->getNumBlocks() == clientModel->getNumBlocksOfPeers()) || !nWeight || !nNetworkWeight)
-    {
-        nWeight = 0;
 
-        if (pwalletMain)
-            pwalletMain->GetStakeWeight(*pwalletMain, nMinMax, nMinMax, nWeight);
+    /* say */ return; /* we dont need you anymore, lazy so will not remove the call, cleanup later */
 
-        nNetworkWeight = GetPoSKernelPS();
-    }
+    /* getting me some inspiration: http://3.bp.blogspot.com/-FHN87s7zQSg/USY6mz3oLDI/AAAAAAABMIY/wai3Qaxe4fg/s400/Animated+GIF+0159a.gif in order to continue hehe*/
+
 }

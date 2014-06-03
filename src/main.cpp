@@ -44,6 +44,7 @@ static CBigNum bnProofOfWorkLimitTestNet(~uint256(0) >> 20);
 static CBigNum bnProofOfStakeLimitTestNet(~uint256(0) >> 20);
 
 unsigned int nStakeMinAge = 60 * 60 * 24 * 10;	// minimum age for coin age: 2d
+unsigned int nStakeMinAgeNew = 60 * 60 * 12;	// minimum age for coin age: 2d
 unsigned int nStakeMaxAge = 60* 60 * 24 * 30;	// stake age of full weight: -1
 unsigned int nStakeTargetSpacing = 30;			// 30 sec block spacing
 
@@ -1891,7 +1892,7 @@ bool CTransaction::GetCoinAge(CTxDB& txdb, uint64& nCoinAge) const
         CBlock block;
         if (!block.ReadFromDisk(txindex.pos.nFile, txindex.pos.nBlockPos, false))
             return false; // unable to read block of previous transaction
-        if (block.GetBlockTime() + nStakeMinAge > nTime)
+        if (block.GetBlockTime() + ( IsProtocolMinStakeAgeChange(nTime)?nStakeMinAgeNew: nStakeMinAge ) > nTime)
             continue; // only count coins meeting min age requirement
 
         int64 nValueIn = txPrev.vout[txin.prevout.n].nValue;
@@ -2520,9 +2521,10 @@ bool LoadBlockIndex(bool fAllowNew)
 
         bnProofOfStakeLimit = bnProofOfStakeLimitTestNet; // 0x00000fff PoS base target is fixed in testnet
         bnProofOfWorkLimit = bnProofOfWorkLimitTestNet; // 0x0000ffff PoW base target is fixed in testnet
-        nStakeMinAge = 20 * 60; // test net min age is 20 min
+        nStakeMinAge = 10 * 60 * 60; // test net min age is 20 min
         nStakeMaxAge = 4* 60 * 60; // test net min age is 60 min
-
+        nStakeMinAgeNew = 5*60;
+        nModifierInterval = 60;
         nCoinbaseMaturity = 10; // test maturity is 10 blocks
         nStakeTargetSpacing = 30; // test block spacing is 3 minutes
     }
@@ -3240,7 +3242,9 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv)
                 printf("  getblocks stopping at %d %s\n", pindex->nHeight, pindex->GetBlockHash().ToString().substr(0,20).c_str());
                 // ppcoin: tell downloading node about the latest block if it's
                 // without risk being rejected due to stake connection check
-                if (hashStop != hashBestChain && pindex->GetBlockTime() + nStakeMinAge > pindexBest->GetBlockTime())
+
+                // here we dont need the check 4 nStakeMinAgeNew since its an rpc command to getblocks, blocks are checked on the receiving end as well
+                if (hashStop != hashBestChain && pindex->GetBlockTime() + nStakeMinAgeNew > pindexBest->GetBlockTime())
                     pfrom->PushInventory(CInv(MSG_BLOCK, hashBestChain));
                 break;
             }

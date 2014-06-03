@@ -16,6 +16,7 @@
 
 using namespace std;
 extern int nStakeMaxAge;
+extern int nStakeMinAgeNew;
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1388,12 +1389,18 @@ bool CWallet::GetStakeWeight(const CKeyStore& keystore, uint64& nMinWeight, uint
     vector<const CWalletTx*> vwtxPrev;
     int64 nValueIn = 0;
 
-    if (!SelectCoins(nBalance - nReserveBalance, GetTime(), setCoins, nValueIn))
+    if (!SelectCoins(nBalance - nReserveBalance, GetTime(), setCoins, nValueIn)){
+        printf("GetStakeWeight: false on SelectCoins\n");
         return false;
+    }
 
-    if (setCoins.empty())
+    if (setCoins.empty()){
+        printf("GetStakeWeight: setCoins is empty\n");
         return false;
+    }
 
+
+    printf("GetStakeWeight:\n");
     CTxDB txdb("r");
     BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
     {
@@ -1488,8 +1495,9 @@ bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, int
 
         static int nMaxStakeSearchInterval = 60;
 		
-		// printf(">> block.GetBlockTime() = %"PRI64d", nStakeMinAge = %d, txNew.nTime = %d\n", block.GetBlockTime(), nStakeMinAge,txNew.nTime); 
-        if (block.GetBlockTime() + nStakeMinAge > txNew.nTime - nMaxStakeSearchInterval)
+        // printf(">> block.GetBlockTime() = %"PRI64d", nStakeMinAge = %d, txNew.nTime = %d\n, bool=%d", block.GetBlockTime(), IsProtocolMinStakeAgeChange(txNew.nTime)?nStakeMinAgeNew: nStakeMinAge,txNew.nTime, block.GetBlockTime() +( IsProtocolMinStakeAgeChange(txNew.nTime)?nStakeMinAgeNew: nStakeMinAge ) > txNew.nTime - nMaxStakeSearchInterval);
+		// change here
+        if (block.GetBlockTime() +( IsProtocolMinStakeAgeChange(txNew.nTime)?nStakeMinAgeNew: nStakeMinAge ) > txNew.nTime - nMaxStakeSearchInterval)
             continue; // only count coins meeting min age requirement
 
         bool fKernelFound = false;

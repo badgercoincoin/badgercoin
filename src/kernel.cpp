@@ -11,6 +11,12 @@ using namespace std;
 
 extern int nStakeMaxAge;
 extern int nStakeTargetSpacing;
+extern int nStakeMinAgeNew; // a.m.s.i.x.
+
+
+
+unsigned int nProtocolMinStakeAgeSwitchTestTime     = 1401816439;   // minstake age switch start time GMT for testnet - change! changed
+unsigned int nProtocolMinStakeAgeSwitchTime         = 1402417639;   // minstake age switch start time GMT for production net - change! 20140610T1827 ! changed
 
 // Modifier interval: time to elapse before new modifier is computed
 // Set to 3-hour for production network and 20-minute for test network
@@ -18,13 +24,10 @@ extern int nStakeTargetSpacing;
 unsigned int nModifierInterval = MODIFIER_INTERVAL;
 
 
-unsigned int nProtocolModifierIntervalChangeSwitchHeight     = 14420;
-unsigned int nProtocolModifierIntervalChangeTestSwitchHeight = 100;
-
-bool IsProtocolModifierIntervalChange(unsigned int nBlockHeight)
+bool IsProtocolMinStakeAgeChange(unsigned int nTimeCoinStake)
 {
-    return false;
-    // return (nBlockHeight >= (fTestNet? nProtocolModifierIntervalChangeTestSwitchHeight : nProtocolModifierIntervalChangeSwitchHeight));
+
+    return (nTimeCoinStake >= (fTestNet? nProtocolMinStakeAgeSwitchTestTime : nProtocolMinStakeAgeSwitchTime));
 }
 
 
@@ -40,7 +43,8 @@ int64 GetWeight(int64 nIntervalBeginning, int64 nIntervalEnd)
     // this change increases active coins participating the hash and helps
     // to secure the network when proof-of-stake difficulty is low
 
-    return min(nIntervalEnd - nIntervalBeginning - nStakeMinAge, (int64)nStakeMaxAge);
+     return min(nIntervalEnd - nIntervalBeginning - (IsProtocolMinStakeAgeChange(nIntervalBeginning)?nStakeMinAgeNew:nStakeMinAge), (int64)nStakeMaxAge);
+     // return min(nIntervalEnd - nIntervalBeginning - nStakeMinAgeNew, (int64)nStakeMaxAge);
 }
 
 // Get the last stake modifier and its generation time from a given block
@@ -147,15 +151,6 @@ bool ComputeNextStakeModifier(const CBlockIndex* pindexPrev, uint64& nStakeModif
         fGeneratedStakeModifier = true;
         return true;  // genesis block's modifier is 0
     }
-    // fix ba.dgercoin
-
-    if ( IsProtocolModifierIntervalChange(pindexPrev->nHeight)){
-        nModifierInterval = fTestNet?MODIFIER_INTERVAL_NEW_TESTNET:MODIFIER_INTERVAL_NEW;
-        //printf("Switching to new modifier interval %i @ block %i", nModifierInterval,pindexPrev->nHeight );
-    }
-
-
-
     // First find current stake modifier and its generation block time
     // if it's not old enough, return the same stake modifier
     int64 nModifierTime = 0;
@@ -310,7 +305,7 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock& blockFrom, unsigned 
         return error("CheckStakeKernelHash() : nTime violation");
 
     unsigned int nTimeBlockFrom = blockFrom.GetBlockTime();
-    if (nTimeBlockFrom + nStakeMinAge > nTimeTx) // Min age requirement
+    if (nTimeBlockFrom + ( IsProtocolMinStakeAgeChange(nTimeTx)?nStakeMinAgeNew: nStakeMinAge ) > nTimeTx) // Min age requirement
         return error("CheckStakeKernelHash() : min age violation");
 
     CBigNum bnTargetPerCoinDay;
@@ -320,7 +315,7 @@ bool CheckStakeKernelHash(unsigned int nBits, const CBlock& blockFrom, unsigned 
     // v0.3 protocol kernel hash weight starts from 0 at the min age
     // this change increases active coins participating the hash and helps
     // to secure the network when proof-of-stake difficulty is low
-    int64 nTimeWeight = min((int64)nTimeTx - txPrev.nTime, (int64)nStakeMaxAge) - nStakeMinAge;
+    int64 nTimeWeight = min((int64)nTimeTx - txPrev.nTime, (int64)nStakeMaxAge) - ( IsProtocolMinStakeAgeChange(nTimeTx)?nStakeMinAgeNew: nStakeMinAge );
     CBigNum bnCoinDayWeight = CBigNum(nValueIn) * nTimeWeight / COIN / (24 * 60 * 60);
 
 	// printf(">>> CheckStakeKernelHash: nTimeWeight = %"PRI64d"\n", nTimeWeight);

@@ -16,6 +16,9 @@ extern unsigned int nModifierInterval;
 // ratio of group interval length between the last group and the first group
 static const int MODIFIER_INTERVAL_RATIO = 3;
 
+
+bool IsProtocolMinStakeAgeChange(unsigned int nTimeCoinStake);
+
 // Compute the hash modifier for proof-of-stake
 bool ComputeNextStakeModifier(const CBlockIndex* pindexPrev, uint64& nStakeModifier, bool& fGeneratedStakeModifier);
 
