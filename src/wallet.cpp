@@ -1390,17 +1390,13 @@ bool CWallet::GetStakeWeight(const CKeyStore& keystore, uint64& nMinWeight, uint
     int64 nValueIn = 0;
 
     if (!SelectCoins(nBalance - nReserveBalance, GetTime(), setCoins, nValueIn)){
-        printf("GetStakeWeight: false on SelectCoins\n");
         return false;
     }
 
     if (setCoins.empty()){
-        printf("GetStakeWeight: setCoins is empty\n");
         return false;
     }
 
-
-    printf("GetStakeWeight:\n");
     CTxDB txdb("r");
     BOOST_FOREACH(PAIRTYPE(const CWalletTx*, unsigned int) pcoin, setCoins)
     {
